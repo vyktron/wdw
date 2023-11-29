@@ -16,4 +16,4 @@ COPY . /consumer
 COPY ../db /db
 
 # Set the entrypoint command
-CMD ["python", "consumer.py"]
+CMD ["python", "consumer/consumer.py"]
