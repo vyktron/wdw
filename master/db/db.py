@@ -1,46 +1,55 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import psycopg2
+from psycopg2 import sql
 from datetime import datetime
-from model import DatabaseModel
-
-# Utilisation de sqlalchemy.orm.declarative_base() au lieu de declarative_base()
-Base = declarative_base()
-
-class SQLAlchemyModel(Base):
-    __tablename__ = 'your_table_name'
-
-    id = Column(Integer, primary_key=True, index=True)
-    nom = Column(String, index=True)
-    latitude = Column(Float)
-    longitude = Column(Float)
-    timestamp = Column(DateTime)
 
 # Configuration de la connexion à la base de données PostgreSQL
 DATABASE_URL = "postgresql://user:password@localhost/dbname"  # Remplacez ceci par votre URL de connexion PostgreSQL
-engine = create_engine(DATABASE_URL)
-Base.metadata.create_all(bind=engine)
 
-# Création d'une session SQLAlchemy
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Fonction pour créer la table dans la base de données
+def create_table():
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
 
-# Fonction pour insérer des données dans la base de données
-def create_database_entry(database_entry: DatabaseModel):
-    db_entry = SQLAlchemyModel(**database_entry.dict())
-    db = SessionLocal()
-    db.add(db_entry)
-    db.commit()
-    db.refresh(db_entry)
-    db.close()
+    # Définition du schéma de la table
+    table_schema = [
+        ("id", "SERIAL", "PRIMARY KEY"),
+        ("Dad_name", "VARCHAR(255)"),
+        ("Latitude", "DOUBLE PRECISION"),
+        ("Longitude", "DOUBLE PRECISION"),
+        ("Timestamp", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    ]
+
+    # Création de la table
+    table_creation_query = sql.SQL("CREATE TABLE IF NOT EXISTS locations ({})").format(
+        sql.SQL(', ').join(sql.SQL("{} {} {}").format(
+            sql.Identifier(col_name),
+            sql.SQL(col_type),
+            sql.SQL(col_options))
+            for col_name, col_type, col_options in table_schema)
+    )
+    cursor.execute(table_creation_query)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def insert_data(nom, latitude, longitude):
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    # Insertion des données
+    insert_query = """
+        INSERT INTO locations (nom, latitude, longitude, timestamp)
+        VALUES (%s, %s, %s, %s)
+    """
+    timestamp = datetime.utcnow()
+    cursor.execute(insert_query, (nom, latitude, longitude, timestamp))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 # Exemple d'utilisation
 if __name__ == "__main__":
-    data = {
-        "id": 1,
-        "nom": "Exemple",
-        "latitude": 40.7128,
-        "longitude": -74.0060,
-        "timestamp": datetime.utcnow(),
-    }
-
-    create_database_entry(DatabaseModel(**data))
+    # Création de la table
+    create_table()

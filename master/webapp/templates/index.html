@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte Leaflet</title>
+    <!-- Inclure les fichiers Leaflet CSS et JavaScript -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" integrity="sha512-+h1i/ll8+Lk5blUU7r8mVfJhF63jKz3w0W9H2Cn/OLwicq/X+uxBrXgo1yQeXpSn7ZtI6s+zG9jzYQGF6esg+Q==" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js" integrity="sha512-QVlW/+7iu8ZFa0RxRxEqPA5K5lVWIl6YtX8vYV2YN1eA+iA4x9yMOeRqEOZIjzv5rZi0nhFroJOay8sYKak2/Gw==" crossorigin=""></script>
+</head>
+<body>
+    <h1>Bonjour</h1>
+    <!-- Div pour afficher la carte -->
+    <div id="map" style="height: 500px;"></div>
+
+    <script>
+        // Initialiser la carte Leaflet
+        var mymap = L.map('map').setView([0, 0], 2);
+
+        // Ajouter une couche de tuiles OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(mymap);
+
+        // Connexion au serveur WebSocket
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // Écouter les mises à jour de la carte
+        socket.on('update_map', function(data) {
+            // Supprimer les anciens marqueurs
+            mymap.eachLayer(function(layer){
+                if (layer instanceof L.Marker) {
+                    mymap.removeLayer(layer);
+                }
+            });
+
+            // Ajouter de nouveaux marqueurs
+            data.locations.forEach(function(location) {
+                var marker = L.marker([location[1], location[2]]).addTo(mymap);
+                marker.bindPopup(location[0]);
+            });
+        });
+    </script>
+</body>
+</html>
