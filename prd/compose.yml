@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  kafka-producer:
+    build:
+      context: ./app
+    container_name: kafka-producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092

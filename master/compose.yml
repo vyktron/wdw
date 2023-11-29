@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres
+    container_name: my-postgres-container
+    environment:
+      POSTGRES_DB: wdw
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+  
+  kafka-consumer:
+    build:
+      context: ./consumer
+    container_name: kafka-consumer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: coordinates
+    depends_on:
+      - kafka
+
+  fastapi:
+    build:
+      context: ./webapp
+    container_name: fastapi
+    environment:
+      DATABASE_URL: postgresql://root:admin@postgres:5432/wdw
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - kafka
+
+
