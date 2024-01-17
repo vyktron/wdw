@@ -4,8 +4,12 @@ from fastapi import WebSocket, WebSocketDisconnect
 import schedule
 import uvicorn
 import asyncio
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, Integer, String, Float
 
-'''
+
 # Configuration de la connexion à la base de données PostgreSQL
 DATABASE_URL = "postgresql://user:password@localhost/dbname"  # Remplacez ceci par votre URL de connexion PostgreSQL
 engine = create_engine(DATABASE_URL)
@@ -27,13 +31,14 @@ app = FastAPI()
 @app.get("/", response_class=HTMLResponse)
 def read_item():
     return HTMLResponse(content=open("index.html").read(), status_code=200)
+
 '''
 # Pour test
 app = FastAPI()
 fake_locations = [
     {"nom": "Jacques", "latitude": 43.2965, "longitude": -0.3700}
 ]
-#
+# '''
 
 # WebSocket pour la communication en temps réel
 class WebSocketManager:

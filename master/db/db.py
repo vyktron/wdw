@@ -3,7 +3,7 @@ from psycopg2 import sql
 from datetime import datetime
 
 # Configuration de la connexion à la base de données PostgreSQL
-DATABASE_URL = "postgresql://user:password@localhost/dbname"  # Remplacez ceci par votre URL de connexion PostgreSQL
+DATABASE_URL = "postgresql://root:admin@localhost:5432/wdw"  # Remplacez ceci par votre URL de connexion PostgreSQL
 
 # Fonction pour créer la table dans la base de données
 def create_table():
@@ -12,11 +12,11 @@ def create_table():
 
     # Définition du schéma de la table
     table_schema = [
-        ("id", "SERIAL", "PRIMARY KEY"),
-        ("Dad_name", "VARCHAR(255)"),
-        ("Latitude", "DOUBLE PRECISION"),
-        ("Longitude", "DOUBLE PRECISION"),
-        ("Timestamp", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    ("id", "SERIAL", "PRIMARY KEY"),
+    ("dad_name", "VARCHAR(255)", ""),
+    ("latitude", "DOUBLE PRECISION", ""),
+    ("longitude", "DOUBLE PRECISION", ""),
+    ("timestamp", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "")
     ]
 
     # Création de la table
@@ -39,7 +39,7 @@ def insert_data(nom, latitude, longitude):
 
     # Insertion des données
     insert_query = """
-        INSERT INTO locations (nom, latitude, longitude, timestamp)
+        INSERT INTO locations (dad_name, latitude, longitude, timestamp)
         VALUES (%s, %s, %s, %s)
     """
     timestamp = datetime.utcnow()
@@ -49,7 +49,53 @@ def insert_data(nom, latitude, longitude):
     cursor.close()
     conn.close()
 
+
+#afficher les données du tableau en mettant le nom des colonnes
+def print_data():
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    # Affichage des données
+    select_query = """
+        SELECT * FROM locations
+    """
+    cursor.execute(select_query)
+    data = cursor.fetchall()
+
+    # Récupération des noms de colonnes
+    column_names = [desc[0] for desc in cursor.description]
+    print(column_names)
+
+    # Affichage des données
+    for row in data:
+        print(row)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def delete_table():
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    # Suppression de la table
+    delete_query = """
+        DROP TABLE locations
+    """
+    cursor.execute(delete_query)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 # Exemple d'utilisation
 if __name__ == "__main__":
+    delete_table()
     # Création de la table
     create_table()
+
+    # Insertion des données
+    insert_data("Jacques", 43.2965, -0.3700)
+    insert_data("Jean", 43.2965, -0.3700)
+    insert_data("Paul", 43.2965, -0.3700)
+    print_data()
