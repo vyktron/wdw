@@ -84,7 +84,6 @@ def scheduled_job():
 def scheduled_job():
     for connection in websocket_manager.active_connections:
         connection.send_json({"locations": [(loc["nom"], loc["latitude"], loc["longitude"]) for loc in fake_locations]})
-#
 
 schedule.every(10).seconds.do(scheduled_job)
 
