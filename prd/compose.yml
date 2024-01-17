@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   producer:
     build:
@@ -8,10 +8,4 @@ services:
     ports:
       - "8444:8444"
     environment:
-      - KAFKA_REST_BOOTSTRAP_SERVERS=broker:29092
-    networks:
-      - master_wdw-net
-
-networks:
-  master_wdw-net:
-    external: true
+      - KAFKA_REST_BOOTSTRAP_SERVERS=25.40.150.24:9092
