@@ -2,44 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carte Leaflet</title>
-    <!-- Inclure les fichiers Leaflet CSS et JavaScript -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" integrity="sha512-+h1i/ll8+Lk5blUU7r8mVfJhF63jKz3w0W9H2Cn/OLwicq/X+uxBrXgo1yQeXpSn7ZtI6s+zG9jzYQGF6esg+Q==" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js" integrity="sha512-QVlW/+7iu8ZFa0RxRxEqPA5K5lVWIl6YtX8vYV2YN1eA+iA4x9yMOeRqEOZIjzv5rZi0nhFroJOay8sYKak2/Gw==" crossorigin=""></script>
+    <title>Interactive Map</title>
+    <!-- Inclure les fichiers CSS et JavaScript de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-    <h1>Bonjour</h1>
-    <!-- Div pour afficher la carte -->
     <div id="map" style="height: 500px;"></div>
 
     <script>
-        // Initialiser la carte Leaflet
-        var mymap = L.map('map').setView([0, 0], 2);
-
-        // Ajouter une couche de tuiles OpenStreetMap
+        // Initialiser la carte
+        var map = L.map('map').setView([43.2951, -0.3708], 13); // Coordonnées de Pau
+    
+        // Ajouter une couche de tuiles (utiliser OpenStreetMap par exemple)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(mymap);
-
-        // Connexion au serveur WebSocket
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
-
-        // Écouter les mises à jour de la carte
-        socket.on('update_map', function(data) {
-            // Supprimer les anciens marqueurs
-            mymap.eachLayer(function(layer){
-                if (layer instanceof L.Marker) {
-                    mymap.removeLayer(layer);
-                }
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+    
+        // Fonction pour ajouter un marqueur sur la carte
+        function addMarker(latitude, longitude) {
+            L.marker([latitude, longitude]).addTo(map);
+        }
+    
+        // Se connecter au WebSocket
+        var socket = new WebSocket("ws://localhost:8000/ws");
+    
+        // Gérer les messages du WebSocket
+        socket.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            var locations = data.locations;
+    
+            // Ajouter les marqueurs à la carte
+            locations.forEach(function(location) {
+                addMarker(parseFloat(location[1]), parseFloat(location[2]));
             });
-
-            // Ajouter de nouveaux marqueurs
-            data.locations.forEach(function(location) {
-                var marker = L.marker([location[1], location[2]]).addTo(mymap);
-                marker.bindPopup(location[0]);
-            });
-        });
+        };
     </script>
 </body>
 </html>
