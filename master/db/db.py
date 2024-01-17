@@ -105,11 +105,12 @@ def clear_table():
 # Exemple d'utilisation
 if __name__ == "__main__":
     #delete_table()
+    clear_table()
     # Création de la table
-    #create_table()
+    create_table()
     print_data()
     # Insertion des données
-    #insert_data("Jacques", 43.2965, -0.300)
+    insert_data("Jacques", 43.2965, -0.300)
     #insert_data("Jean", 43.2965, -0.3700)
     #insert_data("Paul", 43.2965, -0.400)
     insert_data("Franck", 43.2965, -0.200)

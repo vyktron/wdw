@@ -1,8 +1,8 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column, Integer, String, Float
 import schedule
 import uvicorn
@@ -26,15 +26,6 @@ class Location(Base):
 
 app = FastAPI()
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 # WebSocket pour la communication en temps réel
 class WebSocketManager:
     def __init__(self):
@@ -55,27 +46,25 @@ class WebSocketManager:
 
         data = {"locations": [(loc.dad_name, loc.latitude, loc.longitude) for loc in locations]}
         
-        if websocket and websocket in self.active_connections:
+        if websocket:
             await websocket.send_json(data)
         else:
             for connection in self.active_connections:
-                if connection in self.active_connections:  # Vérifier si la connexion est toujours active
-                    await connection.send_json(data)
+                await connection.send_json(data)
 
 websocket_manager = WebSocketManager()
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
+async def websocket_endpoint(websocket: WebSocket):
     await websocket_manager.connect(websocket)
     try:
         while True:
             if scheduled_job():
-                await websocket_manager.broadcast_data(websocket)
+                await websocket_manager.broadcast_data()
             await asyncio.sleep(1)
     except WebSocketDisconnect:
-        if websocket in websocket_manager.active_connections:
-            websocket_manager.disconnect(websocket)
-            await websocket_manager.broadcast_data()
+        websocket_manager.disconnect(websocket)
+        await websocket_manager.broadcast_data()
 
 # Tâche planifiée pour mettre à jour les données toutes les x secondes
 def scheduled_job():

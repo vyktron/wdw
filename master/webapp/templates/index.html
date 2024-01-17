@@ -33,7 +33,12 @@
         socket.onmessage = function(event) {
             var data = JSON.parse(event.data);
             var locations = data.locations;
-    
+            
+            map.eachLayer(function (layer) {
+                if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
             // Ajouter les marqueurs à la carte
             locations.forEach(function(location) {
                 addMarker(parseFloat(location[1]), parseFloat(location[2]), location[0]);
