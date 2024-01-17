@@ -1,46 +1,59 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import Column, Integer, String, Float
 import schedule
 import uvicorn
 import asyncio
 import json
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from db.db import PostgresDB, Location, Dad
 
 # Configuration de la connexion à la base de données PostgreSQL
-DATABASE_URL = "postgresql://root:admin@localhost:5432/wdw"  # Remplacez ceci par votre URL de connexion PostgreSQL
-engine = create_engine(DATABASE_URL)
-Base = declarative_base()
-Base.metadata.create_all(bind=engine)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-class Location(Base):
-    __tablename__ = 'locations'
-
-    id = Column(Integer, primary_key=True, index=True)
-    dad_name= Column(String, index=True)
-    latitude = Column(Float)
-    longitude = Column(Float)
+DATABASE_URL = "postgresql://root:admin@localhost:5432/wdw" #os.environ.get('DATABASE_URL')
+db = PostgresDB(DATABASE_URL)
 
 app = FastAPI()
 
 # WebSocket pour la communication en temps réel
 class WebSocketManager:
     def __init__(self):
-        self.active_connections = set()
+        self.consumer_connections = set()
+        self.map_connection = None
 
-    async def connect(self, websocket: WebSocket):
+    async def consumer_connect(self, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections.add(websocket)
-        await self.broadcast_data()
+        self.consumer_connections.add(websocket)
+    
+    async def map_connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.map_connection = websocket
 
-    async def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.consumer_connections:
+            self.consumer_connections.remove(websocket)
+        else :
+            self.map_connection = None
+    
+    async def handle_connections(self, websocket: WebSocket):
+        await self.consumer_connect(websocket)
+        try:
+            while True:
+                # Listen for new messages from Kafka
+                message = await websocket.receive_text()
+                print(f"Received message: {message}")
+                # Send good news to the client
+                await websocket.send_json({"msg": "Message received!"})
+                if self.map_connection:
+                    print(message)
+                    await self.map_connection.send_text(message)
+        except WebSocketDisconnect:
+            websocket_manager.disconnect(websocket)
 
+    """
     async def broadcast_data(self, websocket: WebSocket = None):
-        db = SessionLocal()
         locations = db.query(Location).all()
         db.close()
 
@@ -51,36 +64,24 @@ class WebSocketManager:
         else:
             for connection in self.active_connections:
                 await connection.send_json(data)
+    """
+    
 
 websocket_manager = WebSocketManager()
 
+# Route websocket pour la communication en temps réel avec le consumer Kafka
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket_manager.connect(websocket)
-    try:
-        while True:
-            if scheduled_job():
-                await websocket_manager.broadcast_data()
-            await asyncio.sleep(1)
-    except WebSocketDisconnect:
-        websocket_manager.disconnect(websocket)
-        await websocket_manager.broadcast_data()
+async def ws_endpoint(websocket: WebSocket):
+    await websocket_manager.handle_connections(websocket)
+    
 
-# Tâche planifiée pour mettre à jour les données toutes les x secondes
-def scheduled_job():
-    for connection in websocket_manager.active_connections:
-        connection.send_text(json.dumps({"locations": []}))  # Efface tous les marqueurs actuels
-
-        db = SessionLocal()
-        locations = db.query(Location).all()
-        db.close()
-
-        data = {"locations": [(loc.dad_name, loc.latitude, loc.longitude) for loc in locations]}
-        for connection in websocket_manager.active_connections:
-            connection.send_text(json.dumps(data))
-    return True
-
-schedule.every(10).seconds.do(scheduled_job)
+@app.websocket("/mapws")
+async def mapws_endpoint(websocket: WebSocket):
+    await websocket_manager.map_connect(websocket)
+    # Maintain connection with the map
+    while True:
+        await asyncio.sleep(30)
+        await websocket.send_json({"healthcheck": "Connection maintained"})
 
 # Route pour la page principale
 @app.get("/", response_class=HTMLResponse)

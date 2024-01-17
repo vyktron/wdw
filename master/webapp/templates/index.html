@@ -15,7 +15,7 @@
         // Initialiser la carte
         var map = L.map('map').setView([43.2951, -0.3708], 13); // Coordonnées de Pau
     
-        // Ajouter une couche de tuiles (utiliser OpenStreetMap par exemple)
+        // Ajouter une couche de tuiles (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
@@ -23,16 +23,21 @@
         // Fonction pour ajouter un marqueur sur la carte
         function addMarker(latitude, longitude, dad_name) {
             var marker = L.marker([latitude, longitude]).addTo(map);
-            marker.bindPopup(dad_name);  // Afficher dad_name lors du clic sur le marqueur
+            marker.bindPopup(dad_name);  // Afficher "dad_name" lors du clic sur le marqueur
         }
     
         // Se connecter au WebSocket
-        var socket = new WebSocket("ws://localhost:8000/ws");
+        var socket = new WebSocket("ws://localhost:8000/mapws");
     
         // Gérer les messages du WebSocket
         socket.onmessage = function(event) {
             var data = JSON.parse(event.data);
-            var locations = data.locations;
+            var dad_id = data.dad_id;
+            var latitude = data.latitude;
+            var longitude = data.longitude;
+
+            // Alert
+            alert("Dad ID: " + dad_id + "\nLatitude: " + latitude + "\nLongitude: " + longitude);
             
             map.eachLayer(function (layer) {
                 if (layer instanceof L.Marker) {
@@ -40,9 +45,8 @@
                     }
                 });
             // Ajouter les marqueurs à la carte
-            locations.forEach(function(location) {
-                addMarker(parseFloat(location[1]), parseFloat(location[2]), location[0]);
-            });
+            addMarker(parseFloat(latitude), parseFloat(longitude), dad_id);
+            
         };
     </script>
 </body>
