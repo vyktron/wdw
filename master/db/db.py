@@ -88,14 +88,30 @@ def delete_table():
     cursor.close()
     conn.close()
 
+def clear_table():
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    # Suppression de la table
+    delete_query = """
+        DELETE FROM locations
+    """
+    cursor.execute(delete_query)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 # Exemple d'utilisation
 if __name__ == "__main__":
-    delete_table()
+    #delete_table()
     # Création de la table
-    create_table()
+    #create_table()
 
     # Insertion des données
-    insert_data("Jacques", 43.2965, -0.3700)
-    insert_data("Jean", 43.2965, -0.3700)
-    insert_data("Paul", 43.2965, -0.3700)
+    #insert_data("Jacques", 43.2965, -0.3700)
+    #insert_data("Jean", 43.2965, -0.3700)
+    #insert_data("Paul", 43.2965, -0.3700)
+    print_data()
+    clear_table()
     print_data()
