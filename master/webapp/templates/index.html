@@ -21,8 +21,9 @@
         }).addTo(map);
     
         // Fonction pour ajouter un marqueur sur la carte
-        function addMarker(latitude, longitude) {
-            L.marker([latitude, longitude]).addTo(map);
+        function addMarker(latitude, longitude, dad_name) {
+            var marker = L.marker([latitude, longitude]).addTo(map);
+            marker.bindPopup(dad_name);  // Afficher dad_name lors du clic sur le marqueur
         }
     
         // Se connecter au WebSocket
@@ -35,7 +36,7 @@
     
             // Ajouter les marqueurs à la carte
             locations.forEach(function(location) {
-                addMarker(parseFloat(location[1]), parseFloat(location[2]));
+                addMarker(parseFloat(location[1]), parseFloat(location[2]), location[0]);
             });
         };
     </script>
