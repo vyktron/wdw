@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db.db import PostgresDB, Location, Dad
 
 # Configuration de la connexion à la base de données PostgreSQL
-DATABASE_URL = "postgresql://root:admin@localhost:5432/wdw" #os.environ.get('DATABASE_URL')
+DATABASE_URL = "postgresql://root:admin@postgres:5432/wdw" #os.environ.get('DATABASE_URL')
 db = PostgresDB(DATABASE_URL)
 
 app = FastAPI()
@@ -43,13 +43,11 @@ class WebSocketManager:
             while True:
                 # Listen for new messages from Kafka
                 message = await websocket.receive_text()
-                print(f"Received message: {message}")
-                # Send good news to the client
-                await websocket.send_json({"msg": "Message received!"})
+                # send pong
+                await websocket.send_text("pong")
                 if self.map_connection:
-                    print(message)
                     await self.map_connection.send_text(message)
-        except WebSocketDisconnect:
+        except WebSocketDisconnect as e:
             websocket_manager.disconnect(websocket)
 
     """
@@ -80,8 +78,8 @@ async def mapws_endpoint(websocket: WebSocket):
     await websocket_manager.map_connect(websocket)
     # Maintain connection with the map
     while True:
-        await asyncio.sleep(30)
-        await websocket.send_json({"healthcheck": "Connection maintained"})
+        await asyncio.sleep(10)
+        await websocket.send_json({"ping": "ping"})
 
 # Route pour la page principale
 @app.get("/", response_class=HTMLResponse)
@@ -89,4 +87,4 @@ def read_item():
     return HTMLResponse(content=open("templates/index.html").read(), status_code=200)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

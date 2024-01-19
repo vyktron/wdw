@@ -8,7 +8,7 @@ WORKDIR /consumer
 # Ugrade pip
 RUN pip install --upgrade pip
 # Install the kafka-python library
-RUN pip install kafka-python pydantic
+RUN pip install kafka-python pydantic websockets psycopg2-binary
 
 # Copy your application code to the container
 COPY . /consumer

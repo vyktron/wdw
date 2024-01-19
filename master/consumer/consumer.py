@@ -4,7 +4,19 @@ from kafka import KafkaConsumer, KafkaAdminClient
 from kafka.errors import TopicAlreadyExistsError
 from kafka.admin import NewTopic
 
-class KafkaConsumer:
+# Import websocket
+import websockets
+import asyncio
+import json
+
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from db.db import PostgresDB, Location, Dad
+
+
+
+class KafkaConsumerWrapper:
     def __init__(self, bootstrap_servers):
         self.bootstrap_servers = bootstrap_servers
         self.consumer = None
@@ -53,7 +65,7 @@ class KafkaConsumer:
 
         print("Connected to Kafka.", flush=True)
 
-    def consume_messages(self, topic_name):
+    async def consume_messages(self, topic_name):
         # Call the function to create the Kafka topic
         self.create_kafka_topic(topic_name)
 
@@ -63,13 +75,25 @@ class KafkaConsumer:
         self.consumer.subscribe([topic_name])
 
         # Poll for messages
-        while True:
-            message = self.consumer.poll(timeout_ms=1000)
-            if message:
-                print(message, flush=True)
-            time.sleep(1)
+        async with websockets.connect('ws://fastapi:8000/ws') as websocket:
+            while True:
 
-if __name__ == "__main__":
+                
+                message = self.consumer.poll(timeout_ms=1000)
+                if message:
+                    # Get the keys
+                    keys = message.keys()
+                    for k in keys :
+                        for record in message[k] :
+                            # Get the value and parse it into a dictionary
+                            value = json.loads(record.value)
+                            print(f"Received message: {value}", flush=True)
+                            await websocket.send(json.dumps(value))
+                else:
+                    await websocket.send("ping")
+                await websocket.recv()
+
+async def main():
     # Replace 'your_topic_name' with the desired topic name
     topic_name = 'coordinates'
 
@@ -78,6 +102,9 @@ if __name__ == "__main__":
 
     kafka_consumer = KafkaConsumerWrapper(bootstrap_servers)
     kafka_consumer.connect()
-    kafka_consumer.consume_messages(topic_name)
+    await kafka_consumer.consume_messages(topic_name)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
     

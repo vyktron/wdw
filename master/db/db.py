@@ -103,12 +103,12 @@ class Location(BaseModel):
     
     Attributs:
     ----------
-    dad_id : int
+    dad_id : str
         Identifiant du papa perdu
     latitude: float
     longitude: float"""
 
-    dad_id : int
+    dad_id : str
     latitude: float
     longitude: float
     timestamp: str = datetime.utcnow().isoformat()
@@ -130,7 +130,6 @@ class Dad(BaseModel):
     timestamp: str
         Date et heure de la dernière position connue"""
 
-    id: int
     name: str = random.choice(["Jacques", "Jean", "Paul", "Franck"])
     ip: str
     latitude: float

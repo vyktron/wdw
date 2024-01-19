@@ -26,27 +26,30 @@
             marker.bindPopup(dad_name);  // Afficher "dad_name" lors du clic sur le marqueur
         }
     
+        // Fonction pour supprimer un marqueur de la carte
+        function removeMarker(dad_id) {
+            map.eachLayer(function (layer) {
+                if (layer instanceof L.Marker && layer.getPopup().getContent() === dad_id) {
+                    map.removeLayer(layer);
+                }
+            });
+        }
+    
         // Se connecter au WebSocket
         var socket = new WebSocket("ws://localhost:8000/mapws");
     
         // Gérer les messages du WebSocket
         socket.onmessage = function(event) {
             var data = JSON.parse(event.data);
+            if (data.ping) {
+                socket.send(JSON.stringify({ pong: pong }));
+                return;
+            }
             var dad_id = data.dad_id;
             var latitude = data.latitude;
             var longitude = data.longitude;
-
-            // Alert
-            alert("Dad ID: " + dad_id + "\nLatitude: " + latitude + "\nLongitude: " + longitude);
-            
-            map.eachLayer(function (layer) {
-                if (layer instanceof L.Marker) {
-                        map.removeLayer(layer);
-                    }
-                });
-            // Ajouter les marqueurs à la carte
+            removeMarker(dad_id); // Supprimer le marqueur avec le même dad_id
             addMarker(parseFloat(latitude), parseFloat(longitude), dad_id);
-            
         };
     </script>
 </body>

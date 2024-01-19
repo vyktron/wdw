@@ -3,9 +3,9 @@ FROM python:3.8
 
 WORKDIR /producer
 
-COPY . /producer
-
 RUN pip install kafka-python geopy
+
+COPY . /producer
 
 # Add your application code here
 
