@@ -129,27 +129,27 @@ class PostgresDB:
     
     def update_dad(self, dad_id, latitude : float, longitude : float) -> None:
             
-            """
-            Update the dad location and timestampin the database
-            
-            Parameters
-            ----------
-            dad_id : int
-            latitude : float
-                The new latitude
-            longitude : float
-                The new longitude
-            """
-    
-            cursor = self.conn.cursor()
-    
-            # Updating dad location
-            update_query = f"""
-                UPDATE {self.dads} SET latitude = %s, longitude = %s, timestamp = CURRENT_TIMESTAMP WHERE id = %s
-            """
-            cursor.execute(update_query, (latitude, longitude, dad_id))
-            self.conn.commit()
-            cursor.close()
+        """
+        Update the dad location and timestampin the database
+        
+        Parameters
+        ----------
+        dad_id : int
+        latitude : float
+            The new latitude
+        longitude : float
+            The new longitude
+        """
+
+        cursor = self.conn.cursor()
+
+        # Updating dad location
+        update_query = f"""
+            UPDATE {self.dads} SET latitude = %s, longitude = %s, timestamp = CURRENT_TIMESTAMP WHERE id = %s
+        """
+        cursor.execute(update_query, (latitude, longitude, dad_id))
+        self.conn.commit()
+        cursor.close()
 
     def get_dads(self) -> list :
 

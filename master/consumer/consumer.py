@@ -2,7 +2,7 @@ import os
 import time
 from kafka import KafkaConsumer, KafkaAdminClient
 from kafka.errors import TopicAlreadyExistsError
-from kafka.admin import NewTopic
+from kafka.admin import NewTopic, NewPartitions
 
 # Import websocket
 import websockets
@@ -45,6 +45,9 @@ class KafkaConsumerWrapper:
             print(f"Topic '{topic_name}' created successfully.")
         except TopicAlreadyExistsError:
             print(f"Topic '{topic_name}' already exists.")
+        
+        # Create 10 partitions
+        admin_client.create_partitions(topic_partitions={"coordinates": NewPartitions(total_count=10)})
 
     def connect(self):
         print("Connecting to Kafka...", flush=True)
