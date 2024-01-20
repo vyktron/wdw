@@ -1,5 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, WebSocket, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 import schedule
 import uvicorn
 import asyncio
@@ -12,10 +13,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db.db import PostgresDB, Location, Dad
 
 # Configuration de la connexion à la base de données PostgreSQL
-DATABASE_URL = "postgresql://root:admin@postgres:5432/wdw" #os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get('DATABASE_URL') 
 db = PostgresDB(DATABASE_URL)
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 # WebSocket pour la communication en temps réel
 class WebSocketManager:
@@ -46,45 +49,54 @@ class WebSocketManager:
                 # send pong
                 await websocket.send_text("pong")
                 if self.map_connection:
-                    await self.map_connection.send_text(message)
-        except WebSocketDisconnect as e:
+                    try :
+                        await self.map_connection.send_text(message)
+                    except Exception as e:
+                        print("Message not sent to map : ", e)
+        except Exception:
             websocket_manager.disconnect(websocket)
-
-    """
-    async def broadcast_data(self, websocket: WebSocket = None):
-        locations = db.query(Location).all()
-        db.close()
-
-        data = {"locations": [(loc.dad_name, loc.latitude, loc.longitude) for loc in locations]}
-        
-        if websocket:
-            await websocket.send_json(data)
-        else:
-            for connection in self.active_connections:
-                await connection.send_json(data)
-    """
     
+    async def handle_map_connection(self, websocket: WebSocket):
+        try :
+            await websocket_manager.map_connect(websocket)
+            # Maintain connection with the map
+            message = json.loads(await websocket.receive_text())
+            if message["get"] == "dads":
+                dads = db.get_dads()
+                await websocket.send_json({"dads": dads})
+            while True:
+                await asyncio.sleep(10)
+                await websocket.send_json({"ping": "ping"})
+                await websocket.receive_text()
+        except Exception as e:
+            print("close map connection : ", e, flush=True)
+            websocket_manager.disconnect(websocket)
 
 websocket_manager = WebSocketManager()
 
 # Route websocket pour la communication en temps réel avec le consumer Kafka
 @app.websocket("/ws")
 async def ws_endpoint(websocket: WebSocket):
-    await websocket_manager.handle_connections(websocket)
+    await asyncio.create_task(websocket_manager.handle_connections(websocket))
     
-
 @app.websocket("/mapws")
 async def mapws_endpoint(websocket: WebSocket):
-    await websocket_manager.map_connect(websocket)
-    # Maintain connection with the map
-    while True:
-        await asyncio.sleep(10)
-        await websocket.send_json({"ping": "ping"})
+    # Terminate an eventual task named "mapws"
+    for task in asyncio.all_tasks():
+        if task.get_name() == "mapws":
+            task.cancel()
+    # Run handle_map_connection in a new task
+    try :
+        await asyncio.create_task(websocket_manager.handle_map_connection(websocket), name="mapws")
+    except asyncio.exceptions.CancelledError:
+        print("Map connection closed", flush=True)
+    except Exception as e:
+        print("Unexpected : ", e, flush=True)
 
 # Route pour la page principale
-@app.get("/", response_class=HTMLResponse)
-def read_item():
-    return HTMLResponse(content=open("templates/index.html").read(), status_code=200)
+@app.get("/")
+def read_item(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -6,50 +6,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Borel&display=swap">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    
 </head>
 <body>
-    <div id="map" style="height: 500px;"></div>
-
+    <h2>Where Dad Went?</h2>
+    <div id="map"></div>
     <script>
-        // Initialiser la carte
-        var map = L.map('map').setView([43.2951, -0.3708], 13); // Coordonnées de Pau
+        // Initialize the map around France
+        var map = L.map('map').setView([46.7111, 1.7191], 6);
     
-        // Ajouter une couche de tuiles (OpenStreetMap)
+        // Add a tile layer (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
     
-        // Fonction pour ajouter un marqueur sur la carte
-        function addMarker(latitude, longitude, dad_name) {
+        // Function to add a marker on the map and a polyline to the marker
+        function addMarker(latitude, longitude, dad_id, name, ip) {
             var marker = L.marker([latitude, longitude]).addTo(map);
-            marker.bindPopup(dad_name);  // Afficher "dad_name" lors du clic sur le marqueur
+            marker.bindPopup("ID: " + dad_id + "<br>Name: " + name + "<br>IP: " + ip); // Add a popup with 
+            marker._leaflet_id = dad_id;
+            var polyline = L.polyline([[latitude, longitude], [latitude, longitude]], {color: 'red'}).addTo(map); // Add a polyline to the marker
+            polyline._leaflet_id = dad_id;
+
+            // Generate a random number between 1 and 8
+            var randomPath = ["{{ url_for('static', path='dads/dad1.png') }}", 
+                                "{{ url_for('static', path='dads/dad2.png') }}", 
+                                "{{ url_for('static', path='dads/dad3.png') }}", 
+                                "{{ url_for('static', path='dads/dad4.png') }}"];
+            var randomIndex = Math.floor(Math.random() * randomPath.length);
+            var icon = L.icon({
+                iconUrl: randomPath[randomIndex],
+                iconSize: [50, 50],
+                iconAnchor: [19, 38],
+                popupAnchor: [0, -38]
+            });
+            marker.setIcon(icon);
         }
     
-        // Fonction pour supprimer un marqueur de la carte
+        // Function to remove a marker from the map
         function removeMarker(dad_id) {
             map.eachLayer(function (layer) {
-                if (layer instanceof L.Marker && layer.getPopup().getContent() === dad_id) {
+                if (layer instanceof L.Marker && layer._leaflet_id === dad_id) {
                     map.removeLayer(layer);
                 }
             });
         }
+
+        // Function to move a marker on the map
+        function moveMarker(dad_id, latitude, longitude) {
+            var markerFound = false;
+            map.eachLayer(function (layer) {
+                if (layer instanceof L.Marker && layer._leaflet_id === dad_id) {
+                    layer.setLatLng([latitude, longitude]);
+                    // Move the polyline
+                    map.eachLayer(function (layer2) {
+                        if (layer2 instanceof L.Polyline && layer2._leaflet_id === dad_id) {
+                            layer2.addLatLng([latitude, longitude]);
+                        }
+                    });
+                    markerFound = true;
+                    return false;
+                }
+            });
+            return markerFound;
+        }
     
-        // Se connecter au WebSocket
+        // Connect to the WebSocket
         var socket = new WebSocket("ws://localhost:8000/mapws");
+
+        // Ask for database data
+        socket.onopen = function(event) {
+            socket.send(JSON.stringify({ get: "dads" }));
+        };
     
-        // Gérer les messages du WebSocket
+        // Handle the WebSocket messages (send pong when pinged)
         socket.onmessage = function(event) {
             var data = JSON.parse(event.data);
             if (data.ping) {
                 socket.send(JSON.stringify({ pong: pong }));
                 return;
             }
+            if (data.dads) {
+                // Remove all markers
+                map.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+                // Add all markers
+                for (var i = 0; i < data.dads.length; i++) {
+                    // The data is an array of [dad_id, Dad{latitude, longitude, name}]
+                    var dad_id = data.dads[i][0];
+                    var latitude = data.dads[i][1].latitude;
+                    var longitude = data.dads[i][1].longitude;
+                    var name = data.dads[i][1].name;
+                    var ip = data.dads[i][1].ip;
+                    addMarker(parseFloat(latitude), parseFloat(longitude), parseInt(dad_id), name, ip);
+                }
+                return;
+            }
             var dad_id = data.dad_id;
+            var ip = data.ip;
             var latitude = data.latitude;
             var longitude = data.longitude;
-            removeMarker(dad_id); // Supprimer le marqueur avec le même dad_id
-            addMarker(parseFloat(latitude), parseFloat(longitude), dad_id);
+            var name = data.name;
+
+            // Si le marqueur existe déjà, le déplacer
+            exists = moveMarker(dad_id, parseFloat(latitude), parseFloat(longitude));
+            if (!exists) {
+                addMarker(parseFloat(latitude), parseFloat(longitude), parseInt(dad_id), name, ip);
+            }
         };
     </script>
 </body>
