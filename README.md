@@ -12,7 +12,7 @@ A picture is worth a thousand words
 
 ## Architecture
 
-The architecture is called "microservice", which means that services such as the database, the frontend, etc. are distributed and distributed in different docker containers (as minimal as possible).
+The architecture is called "microservice", which means that services such as the database, the frontend, etc. are distributed in different docker containers (as minimal as possible).
 
 In our case, the machines in the cluster can have two distinct roles: "Master" and "Producer". Note that the master node may itself be distributed across several machines (one machine may host the Kafka broker, another may host the web application...).
 
@@ -35,4 +35,14 @@ The consumer has to role to consumer the messages and send it to the FastAPI con
 
 ### WebApp
 
-The webapp is based on FastAPI and a Uvicorn server and has the role to render the positions on a map in real-time. When started the PostgresSQL is called to access last data saved and render all known producers. If the consumer sends messages, FastAPI will receive it and send it to the frontend to be rendered
+The webapp is based on FastAPI and a Uvicorn server and has the role to render the positions on a map in real-time. When started the PostgresSQL is called to access last data saved and render all known producers. If the consumer sends messages, FastAPI will receive it and send it to the frontend to be rendered.
+
+### Database
+
+The database is a docker image of PostgreSQL. The consumed messages are saved in the database on a shared volume following this structure :
+
+<img
+  src="/img/db.png"
+  alt="Alt text"
+  title="Tables"
+  style="display: inline-block; margin: 0 auto; max-width: 300px">
