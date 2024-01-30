@@ -37,6 +37,12 @@ The consumer has to role to consumer the messages and send it to the FastAPI con
 
 The webapp is based on FastAPI and a Uvicorn server and has the role to render the positions on a map in real-time. When started the PostgresSQL is called to access last data saved and render all known producers. If the consumer sends messages, FastAPI will receive it and send it to the frontend to be rendered.
 
+<img
+  src="/img/map.png"
+  alt="Alt text"
+  title="Interactive Map"
+  style="display: inline-block; margin: 0 auto; max-width: 200px">
+
 ### Database
 
 The database is a docker image of PostgreSQL. The consumed messages are saved in the database on a shared volume following this structure :
@@ -46,3 +52,41 @@ The database is a docker image of PostgreSQL. The consumed messages are saved in
   alt="Alt text"
   title="Tables"
   style="display: inline-block; margin: 0 auto; max-width: 300px">
+
+## Run the app
+
+### Prerequisite
+
+- Docker Daemon
+- Several machines on the same network
+- The IP address of the machine that will host the "Master" on the same network
+
+### Set "Master" IP address
+
+Modify the IP address in both docker compose (the one in /master and in /prd)
+
+- Master : in the environment variables of the "broker" service (which is the first one), replace the IP address `25.40.150.24` with your master's IP address
+
+<img
+  src="/img/compose1.png"
+  alt="Alt text"
+  title="Master Docker compose"
+  style="display: inline-block; margin: 0 auto; max-width: 300px">
+
+- Producer : do the same thing
+
+<img
+src="/img/compose2.png"
+alt="Alt text"
+title="Producer Docker compose"
+style="display: inline-block; margin: 0 auto; max-width: 300px">
+
+### Compose Up
+
+On the machine you chose to be the master, go in the master folder `cd /master` and run `docker compose up consumer fastapi` (the "consumer" and "fastapi" are here to only attach these containers to the terminal)
+
+On the producers machines : `cd /prd` and `docker compose up`
+
+Then access to `http://0.0.0.0:8000` to see the interactive map
+
+
