@@ -1,20 +1,14 @@
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-import schedule
 import uvicorn
 import asyncio
 import json
-import os
-import sys
+import sys, os, time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db.db import PostgresDB, Location, Dad
-
-# Configuration de la connexion à la base de données PostgreSQL
-DATABASE_URL = os.environ.get('DATABASE_URL') 
-db = PostgresDB(DATABASE_URL)
+from db.db import PostgresDB
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -99,4 +93,19 @@ def read_item(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 if __name__ == "__main__":
+
+    attempts = 0
+    while attempts < 3:
+        try:
+            # Configuration de la connexion à la base de données PostgreSQL
+            DATABASE_URL = os.environ.get('DATABASE_URL') 
+            db = PostgresDB(DATABASE_URL)
+            break
+        except Exception as e:
+            print("Failed to connect to the database:", e, flush=True)
+            print(f"Attempt {attempts}/3: Database not ready, new attempt in 5s...", flush=True)
+            attempts += 1
+            time.sleep(5)
+
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
